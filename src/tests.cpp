@@ -2,38 +2,68 @@
 
 // 练习1，实现库函数strlen
 int my_strlen(char *str) {
-    /**
-     * 统计字符串的长度。
-     */
-
+    /**  
+    * 统计字符串的长度。  
+    */  
     // IMPLEMENT YOUR CODE HERE
-    return 0;
+     char *ptr = str;
+    while (*ptr != '\0') {
+        ptr++;
+    }
+    return ptr - str;
 }
-
-
 // 练习2，实现库函数strcat
 void my_strcat(char *str_1, char *str_2) {
     /**
-     * 将字符串str_2拼接到str_1之后，我们保证str_1指向的内存空间足够用于添加str_2。
-     * 注意结束符'\0'的处理。
-     */
-
+    * 将字符串str_2拼接到str_1之后，我们保证str_1指向的内存空间
+    * 注意结束符'\0'的处理。
+    */
     // IMPLEMENT YOUR CODE HERE
+    // 找到str_1的结尾
+    int i = 0;
+    while (str_1[i] != '\0') {
+        i++;
+    }
+    
+    // 将str_2的内容复制到str_1结尾处
+    int j = 0;
+    while (str_2[j] != '\0') {
+        str_1[i] = str_2[j];
+        i++;
+        j++;
+    }
+    
+    // 添加字符串结束符
+    str_1[i] = '\0';
 }
-
 
 // 练习3，实现库函数strstr
 char* my_strstr(char *s, char *p) {
     /**
-     * 在字符串s中搜索字符串p，如果存在就返回第一次找到的地址，不存在就返回空指针(0)。
-     * 例如：
-     * s = "123456", p = "34"，应该返回指向字符'3'的指针。
-     */
-
+    * 在字符串s中搜索字符串p，如果存在就返回第一次找到的地址，不
+    * 例如：
+    * s = "123456", p = "34"，应该返回指向字符'3'的指针。
+    */
     // IMPLEMENT YOUR CODE HERE
-    return 0;
+    if (*p == '\0') {
+        return s;  // 如果子串为空，返回原字符串
+    }
+    
+    for (int i = 0; s[i] != '\0'; i++) {
+        bool found = true;
+        for (int j = 0; p[j] != '\0'; j++) {
+            if (s[i + j] == '\0' || s[i + j] != p[j]) {
+                found = false;
+                break;
+            }
+        }
+        if (found) {
+            return &s[i];  // 返回找到的位置的指针
+        }
+    }
+    
+    return nullptr;  // 没有找到返回空指针
 }
-
 
 /**
  * ================================= 背景知识 ==================================
@@ -96,6 +126,24 @@ void rgb2gray(float *in, float *out, int h, int w) {
      */
 
     // IMPLEMENT YOUR CODE HERE
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            // 计算当前像素在数组中的位置
+            int rgb_index = (i * w + j) * 3;  // 彩色图：每个像素3个值(R,G,B)
+            int gray_index = i * w + j;       // 灰度图：每个像素1个值
+            
+            // 获取RGB值
+            float R = in[rgb_index];
+            float G = in[rgb_index + 1];
+            float B = in[rgb_index + 2];
+            
+            // 使用公式计算灰度值：V = 0.114*B + 0.587*G + 0.2989*R
+            float gray_value = 0.114f * B + 0.587f * G + 0.2989f * R;
+            
+            // 将灰度值写入输出数组
+            out[gray_index] = gray_value;
+        }
+    }
     // ...
 }
 
@@ -105,7 +153,7 @@ void resize(float *in, float *out, int h, int w, int c, float scale) {
      * 图像处理知识：
      *  1.单线性插值法
      *      假设有两个已知 点1(x1, y1) 和 点2(x2, y2)，
-     *      点1 的值为v1，点2 的值为v2，
+     *      点1 的灰度值为v1，点2的灰度值为v2，
      *      待插值点 (x, y)处于 点1 和 点2 中间，值为 v，
      *      如下图所示(*表示点，/表示三个点在一条直线上)：
      *
@@ -198,7 +246,51 @@ void resize(float *in, float *out, int h, int w, int c, float scale) {
 
     int new_h = h * scale, new_w = w * scale;
     // IMPLEMENT YOUR CODE HERE
-
+    // 遍历目标图像的每个像素
+    for (int y = 0; y < new_h; ++y) {
+        for (int x = 0; x < new_w; ++x) {
+            // 1. 计算在源图像中的对应坐标
+            float x0 = x / scale;
+            float y0 = y / scale;
+            
+            // 2. 找到四个邻居点
+            int x1 = static_cast<int>(x0);
+            int y1 = static_cast<int>(y0);
+            int x2 = x1 + 1;
+            int y2 = y1 + 1;
+            
+            // 边界检查，防止越界
+            if (x1 < 0) x1 = 0;
+            if (x1 >= w) x1 = w - 1;
+            if (y1 < 0) y1 = 0;
+            if (y1 >= h) y1 = h - 1;
+            if (x2 < 0) x2 = 0;
+            if (x2 >= w) x2 = w - 1;
+            if (y2 < 0) y2 = 0;
+            if (y2 >= h) y2 = h - 1;
+            
+            // 计算插值权重
+            float dx = x0 - x1;
+            float dy = y0 - y1;
+            
+            // 对每个通道进行双线性插值
+            for (int channel = 0; channel < c; ++channel) {
+                // 获取四个邻居点的像素值
+                float p1 = in[(y1 * w + x1) * c + channel]; // P1: (x1, y1)
+                float p2 = in[(y1 * w + x2) * c + channel]; // P2: (x2, y1)
+                float p3 = in[(y2 * w + x1) * c + channel]; // P3: (x1, y2)
+                float p4 = in[(y2 * w + x2) * c + channel]; // P4: (x2, y2)
+                
+                // 双线性插值计算
+                float q1 = p1 * (1 - dx) + p2 * dx; // 水平方向插值得到 Q1
+                float q2 = p3 * (1 - dx) + p4 * dx; // 水平方向插值得到 Q2
+                float result = q1 * (1 - dy) + q2 * dy; // 垂直方向插值得到最终结果
+                
+                // 存储到输出图像
+                out[(y * new_w + x) * c + channel] = result;
+            }
+        }
+    }
 }
 
 
@@ -221,4 +313,41 @@ void hist_eq(float *in, int h, int w) {
      */
 
     // IMPLEMENT YOUR CODE HERE
+    const int GRAY_LEVELS = 256;  // 灰度级个数
+    
+    // 1. 统计每个灰度级的像素数量
+    int hist[GRAY_LEVELS] = {0};
+    for (int i = 0; i < h * w; i++) {
+        int gray_level = static_cast<int>(in[i]);
+        if (gray_level >= 0 && gray_level < GRAY_LEVELS) {
+            hist[gray_level]++;
+        }
+    }
+    
+    // 2. 计算累积分布函数
+    float cdf[GRAY_LEVELS] = {0};
+    cdf[0] = hist[0];
+    for (int i = 1; i < GRAY_LEVELS; i++) {
+        cdf[i] = cdf[i-1] + hist[i];
+    }
+    
+    // 3. 计算最小累积分布值（排除0值）
+    float cdf_min = 0;
+    for (int i = 0; i < GRAY_LEVELS; i++) {
+        if (hist[i] > 0) {
+            cdf_min = cdf[i];
+            break;
+        }
+    }
+    
+    // 4. 应用直方图均衡化公式
+    float total_pixels = h * w;
+    for (int i = 0; i < h * w; i++) {
+        int gray_level = static_cast<int>(in[i]);
+        if (gray_level >= 0 && gray_level < GRAY_LEVELS) {
+            // 直方图均衡化公式
+            float new_value = (cdf[gray_level] - cdf_min) / (total_pixels - cdf_min) * 255.0f;
+            in[i] = new_value;
+        }
+    }
 }
